@@ -13,21 +13,43 @@ public class SparseMatrixGF2(
     override val nonZeroes: Int get() = data.size
     private val colOffset = IntArray(cols + 1)
 
-    public constructor(generator: Generator) : this(generator.rows, generator.cols, IntArray(generator.nonZeroes)) {
+    public constructor(generator: Generator) : this(
+        generator.rows,
+        generator.cols,
+        IntArray(generator.nonZeroes)
+    ) {
         generator.generate { row, col ->
+            check(row < rows && col < cols) { "row: $row, col: $col" }
             colOffset[col + 1]++
         }
         for (i in 1 until colOffset.size) {
             colOffset[i] += colOffset[i - 1]
         }
+        val colPos = colOffset.clone()
+
         generator.generate { row, col ->
-            data[colOffset[col]++] = row
+            data[colPos[col]++] = row
+        }
+
+        // todo: tests in SparseMatrixGF2Test
+        for (colI in 0 until cols) {
+            val c = col(colI).asSequence().toList()
+            for (j in 1 until c.size) {
+//                println("c[j]=${c[j]} c[j-1]=${c[j - 1]} col_i=$colI")
+                check(c[j] > c[j - 1]) { "${c[j]} > ${c[j - 1]} row $colI" }
+            }
         }
     }
 
     public fun col(index: Int): Iterator<Int> = ColIterator(index)
 
-    public fun blockForEach(rowStartIndex: Int, colStartIndex: Int, rowSize: Int, colSize: Int, block: (Int, Int) -> Unit) {
+    public fun blockForEach(
+        rowStartIndex: Int,
+        colStartIndex: Int,
+        rowSize: Int,
+        colSize: Int,
+        block: (Int, Int) -> Unit
+    ) {
         for (row in rowStartIndex until rowStartIndex + rowSize) {
             for (col in colStartIndex until colStartIndex + colSize) {
                 block(row - rowStartIndex, col - colStartIndex)
@@ -74,13 +96,18 @@ public class SparseMatrixGF2(
     }
 
     private inner class ColIterator(
-        i: Int
+        index: Int
     ) : Iterator<Int> {
-        var i = colOffset[i]
-        val last = colOffset[i + 1]
+        var pointer = colOffset[index]
+        val size = colOffset[index + 1] - pointer
+        val lastIndex = pointer + size
 
-        override fun hasNext(): Boolean = i < colOffset[last]
-        override fun next(): Int = data[i++]
+        override fun hasNext(): Boolean = pointer < lastIndex
+
+        override fun next(): Int {
+            if (!hasNext()) throw NoSuchElementException()
+            return data[pointer++]
+        }
     }
 
     private class BlockView(
@@ -90,13 +117,14 @@ public class SparseMatrixGF2(
         override val cols: Int,
         private val matrix: SparseMatrixGF2
     ) : Generator {
-        override val nonZeroes: Int get() {
-            var result = 0
-            matrix.blockForEach(rowOffset, colOffset, rows, cols) { _, _ ->
-                result++
+        override val nonZeroes: Int
+            get() {
+                var result = 0
+                matrix.blockForEach(rowOffset, colOffset, rows, cols) { _, _ ->
+                    result++
+                }
+                return result
             }
-            return result
-        }
 
         override fun generate(block: (Int, Int) -> Unit) {
             matrix.blockForEach(rowOffset, colOffset, rows, cols, block)

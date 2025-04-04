@@ -8,34 +8,40 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 public data class EncodingRow(
-    public var d: Int,
-    public var a: Int,
-    public var b: Int,
-    public var d1: Int,
-    public var a1: Int,
-    public var b1: Int
+    public val d: UInt,
+    public val a: UInt,
+    public val b: UInt,
+    public val d1: UInt,
+    public val a1: UInt,
+    public val b1: UInt
 ) {
-    val size: Int get() = d + d1
+    init {
+        if (a == 31879u && d == 2u) {
+            print("")
+        }
+    }
+
+    val size: Int get() = (d + d1).toInt()
 
     public companion object {
         public fun fromParameters(parameters: Parameters, x: Int): EncodingRow {
-            var A = 53591 + parameters.j * 997
-            if (A % 2 == 0) {
+            var A = 53591u + parameters.j * 997u
+            if (A % 2u == 0u) {
                 A++
             }
-            val bLocal = 10267 * (parameters.j + 1)
-            val y = bLocal + x * A
-            val v = Rand.rand(y, 0, 1 shl 20)
-            val d = Deg.deg(v, parameters.w)
-            val a = 1 + Rand.rand(y, 1, parameters.w - 1)
-            val b = Rand.rand(y, 2, parameters.w)
-            val d1 = if (d < 4) {
-                2 + Rand.rand(x, 3, 2)
+            val bLocal = 10267u * (parameters.j + 1u)
+            val y = bLocal + x.toUInt() * A
+            val v = Rand.rand(y.toInt(), 0, 1 shl 20)
+            val d = Deg.deg(v, parameters.w.toInt()).toUInt()
+            val a = 1u + Rand.rand(y.toInt(), 1, (parameters.w - 1u).toInt()).toUInt()
+            val b = Rand.rand(y.toInt(), 2, parameters.w.toInt()).toUInt()
+            val d1 = if (d < 4u) {
+                2u + Rand.rand(x, 3, 2).toUInt()
             } else {
-                2
+                2u
             }
-            val a1 = 1 + Rand.rand(x, 4, parameters.p1 - 1)
-            val b1 = Rand.rand(x, 5, parameters.p1)
+            val a1 = 1u + Rand.rand(x, 4, parameters.p1 - 1).toUInt()
+            val b1 = Rand.rand(x, 5, parameters.p1).toUInt()
             return EncodingRow(d, a, b, d1, a1, b1)
         }
     }
@@ -44,14 +50,14 @@ public data class EncodingRow(
 public data class Parameters(
     public val k: Int,
     public val kPadded: Int,
-    public val j: Int,
+    public val j: UInt,
     public val s: Int,
     public val h: Int,
-    public val w: Int,
+    public val w: UInt,
     public val l: Int,
     public val p: Int,
     public val p1: Int,
-    public val u: Int,
+    public val u: UInt,
     public val b: Int,
 ) {
     public fun getEncodingRow(x: Int): EncodingRow = EncodingRow.fromParameters(this, x)
@@ -61,28 +67,34 @@ public data class Parameters(
         contract {
             callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
         }
-        block(encodingRow.b)
-        for (j in 1 until encodingRow.d) {
-            encodingRow.b = (encodingRow.b + encodingRow.a) % w
-            block(encodingRow.b)
+        var b1 = encodingRow.b1
+        var b = encodingRow.b
+        block(b.toInt())
+        repeat((encodingRow.d - 1u).toInt()) {
+            b = (b + encodingRow.a) % w
+            block(b.toInt())
         }
-        while (encodingRow.b1 >= p) {
-            encodingRow.b1 = (encodingRow.b1 + encodingRow.a1) % p1
+        while (b1 >= p.toUInt()) {
+            b1 = (b1 + encodingRow.a1) % p1.toUInt()
         }
-        block(w + encodingRow.b1)
-        for (j in 1 until encodingRow.d1) {
-            encodingRow.b1 = (encodingRow.b1 + encodingRow.a1) % p1
-            while (encodingRow.b1 >= p) {
-                encodingRow.b1 = (encodingRow.b1 + encodingRow.a1) % p1
+
+        block((w + b1).toInt())
+        repeat((encodingRow.d1 - 1u).toInt()) {
+            b1 = (b1 + encodingRow.a1) % p1.toUInt()
+            while (b1 >= p.toUInt()) {
+                b1 = (b1 + encodingRow.a1) % p1.toUInt()
             }
-            block(w + encodingRow.b1)
+            block((w + b1).toInt())
         }
     }
 
     public fun upperA(encodingRows: Array<EncodingRow>): SparseMatrixGF2 =
-        SparseMatrixGF2(BlockGenerator(s + encodingRows.size, l,
-            LDPC1(s, b), IdentityGenerator(s), LDPC2(s, p), ENC(this, encodingRows)
-        ))
+        SparseMatrixGF2(
+            BlockGenerator(
+                (s + encodingRows.size), l,
+                LDPC1(s, b), IdentityGenerator(s), LDPC2(s, p), ENC(this, encodingRows)
+            )
+        )
 
     private class RawParameters(
         val kPadded: Int,
@@ -584,19 +596,19 @@ public data class Parameters(
 
         private fun fromRawParameters(k: Int, rawParameters: RawParameters): Parameters {
             val kPadded = rawParameters.kPadded
-            val j = rawParameters.j
+            val j = rawParameters.j.toUInt()
             val s = rawParameters.s
             val h = rawParameters.h
-            val w = rawParameters.w
-            val l = kPadded + s + h
+            val w = rawParameters.w.toUInt()
+            val l = kPadded.toUInt() + s.toUInt() + h.toUInt()
             val p = l - w
-            val u = p - h
-            val b = w - s
-            var p1 = p + 1
+            val u = p - h.toUInt()
+            val b = (w - s.toUInt()).toInt()
+            var p1 = (p + 1u).toInt()
             while (!isPrime(p1)) {
                 p1++
             }
-            return Parameters(k, kPadded, j, s, h, w, l, p, p1, u, b)
+            return Parameters(k, kPadded, j, s, h, w, l.toInt(), p.toInt(), p1, u, b)
         }
 
         private fun isPrime(n: Int): Boolean {

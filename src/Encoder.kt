@@ -34,19 +34,24 @@ public class Encoder(
         return result
     }
 
+    public fun prepareMoreSymbols() {
+        rawEncoder
+    }
+
     public companion object {
         public fun create(
             symbolSize: Int,
             data: ByteArray
         ): Encoder {
-            val parameters = Parameters.fromK(data.size + symbolSize - 1 / symbolSize)
+            val parameters = Parameters.fromK((data.size + symbolSize - 1) / symbolSize)
             val firstSymbols = Array(parameters.kPadded) { id ->
-                ByteArray(symbolSize)
-            }
-            for (i in firstSymbols.indices) {
-                val offset = i * symbolSize
+                val symbol = ByteArray(symbolSize)
+                val offset = id * symbolSize
                 val length = min(symbolSize, data.size - offset)
-                data.copyInto(firstSymbols[i], 0, offset, offset + length)
+                if (length > 0) {
+                    data.copyInto(symbol, 0, offset, offset + length)
+                }
+                symbol
             }
             return Encoder(parameters, symbolSize, data.size, firstSymbols)
         }

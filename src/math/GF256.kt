@@ -15,7 +15,7 @@ public interface GF256 {
 }
 
 public class ByteGF256 constructor(
-    private val data: ByteArray,
+    public val data: ByteArray,
     private val offset: Int = 0,
     public val size: Int = data.size
 ) : GF256 {

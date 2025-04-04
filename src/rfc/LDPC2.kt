@@ -6,7 +6,7 @@ public class LDPC2(
     public override val rows: Int,
     public override val cols: Int
 ) : Generator {
-    public override val nonZeroes: Int get() = cols * 2
+    public override val nonZeroes: Int get() = rows * 2
 
     public override fun generate(block: (Int, Int) -> Unit) {
         for (row in 0 until rows) {

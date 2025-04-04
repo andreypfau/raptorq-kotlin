@@ -16,7 +16,7 @@ public value class Octet(
         Octet(value xor other.value)
 
 
-    public fun inv(): Octet = EXP_PRE_CALC[255 - LOG_PRE_CALC[toInt()]].toOctet()
+    public fun inv(): Octet = EXP_PRE_CALC[255 - LOG_PRE_CALC[toInt()].toInt()].toOctet()
 
     public fun toByte(): Byte = value
     public fun toInt(): Int = value.toUInt().toInt()
@@ -38,7 +38,7 @@ public value class Octet(
             118u, 196u, 23u, 73u, 236u, 127u, 12u, 111u, 246u, 108u, 161u, 59u, 82u, 41u, 157u, 85u, 170u, 251u, 96u, 134u, 177u, 187u,
             204u, 62u, 90u, 203u, 89u, 95u, 176u, 156u, 169u, 160u, 81u, 11u, 245u, 22u, 235u, 122u, 117u, 44u, 215u, 79u, 174u, 213u,
             233u, 230u, 231u, 173u, 232u, 116u, 214u, 244u, 234u, 168u, 80u, 88u, 175u,
-        ).asByteArray()
+        )
         // @formatter:on
 
         // @formatter:off
