@@ -9,7 +9,7 @@ public class TransposeGenerator(
 
     override val nonZeroes: Int get() = generator.nonZeroes
 
-    override fun generate(block: (Int, Int) -> Unit) {
+    override fun generate(block: GeneratorBlock) {
         generator.generate { row, col ->
             block(col, row)
         }

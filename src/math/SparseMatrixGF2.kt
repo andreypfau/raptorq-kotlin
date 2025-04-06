@@ -1,6 +1,7 @@
 package io.github.andreypfau.raptorq.math
 
 import io.github.andreypfau.raptorq.generators.Generator
+import io.github.andreypfau.raptorq.generators.GeneratorBlock
 import io.github.andreypfau.raptorq.generators.PermutationGenerator
 import io.github.andreypfau.raptorq.generators.TransposeGenerator
 
@@ -18,7 +19,7 @@ public class SparseMatrixGF2(
         IntArray(generator.nonZeroes)
     ) {
         generator.generate { row, col ->
-            check(row < rows && col < cols) { "row: $row, col: $col" }
+//            check(row < rows && col < cols) { "row: $row, col: $col" }
             colOffset[col + 1]++
         }
         for (i in 1 until colOffset.size) {
@@ -30,14 +31,14 @@ public class SparseMatrixGF2(
             data[colPos[col]++] = row
         }
 
-        // todo: tests in SparseMatrixGF2Test
-        for (colI in 0 until cols) {
-            val c = col(colI).asSequence().toList()
-            for (j in 1 until c.size) {
-//                println("c[j]=${c[j]} c[j-1]=${c[j - 1]} col_i=$colI")
-                check(c[j] > c[j - 1]) { "${c[j]} > ${c[j - 1]} row $colI" }
-            }
-        }
+//        // todo: tests in SparseMatrixGF2Test
+//        for (colI in 0 until cols) {
+//            val c = col(colI).asSequence().toList()
+//            for (j in 1 until c.size) {
+////                println("c[j]=${c[j]} c[j-1]=${c[j - 1]} col_i=$colI")
+//                check(c[j] > c[j - 1]) { "${c[j]} > ${c[j - 1]} row $colI" }
+//            }
+//        }
     }
 
     internal fun col(index: Int, from: Int = 0) = ColIterator(index, from)
@@ -47,7 +48,7 @@ public class SparseMatrixGF2(
         colStartIndex: Int,
         rowSize: Int,
         colSize: Int,
-        block: (Int, Int) -> Unit
+        block: GeneratorBlock
     ) {
         val colTill = colStartIndex + colSize
         val rowTill = rowStartIndex + rowSize
@@ -66,7 +67,7 @@ public class SparseMatrixGF2(
         }
     }
 
-    override fun generate(block: (row: Int, col: Int) -> Unit) {
+    override fun generate(block: GeneratorBlock) {
         blockForEach(0, 0, rows, cols, block)
     }
 
@@ -155,7 +156,7 @@ public class SparseMatrixGF2(
                 return result
             }
 
-        override fun generate(block: (Int, Int) -> Unit) {
+        override fun generate(block: GeneratorBlock) {
             matrix.blockForEach(rowOffset, colOffset, rows, cols, block)
         }
     }

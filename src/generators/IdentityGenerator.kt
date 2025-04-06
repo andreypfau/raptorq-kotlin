@@ -6,7 +6,7 @@ public class IdentityGenerator(
     override val rows: Int get() = nonZeroes
     override val cols: Int get() = nonZeroes
 
-    override fun generate(block: (Int, Int) -> Unit) {
+    override fun generate(block: GeneratorBlock) {
         for (i in 0 until nonZeroes) {
             block(i, i)
         }

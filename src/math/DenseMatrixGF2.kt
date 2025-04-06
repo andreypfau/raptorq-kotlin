@@ -35,9 +35,6 @@ public class DenseMatrixGF2(
     public fun setOne(row: Int, col: Int) {
         val word = row * rowWordWidth + col / WORD_WIDTH
         val bit = col % WORD_WIDTH
-        if (word == 915678 && col == 0 && row == 50871) {
-            print("")
-        }
         data[word] = data[word] or (1 shl bit)
     }
 
@@ -47,14 +44,14 @@ public class DenseMatrixGF2(
         data[word] = data[word] and (1 shl bit).inv()
     }
 
-    public fun addAssignRow(destRow: Int, srcRow: Int) {
+    public fun addAssignRow(destRow: Int, srcRow: Int, srcMatrix: DenseMatrixGF2 = this) {
         val rowWidth = rowWordWidth
         val destWord = destRow * rowWidth
         val srcWord = srcRow * rowWidth
         for (i in 0 until rowWidth) {
             val destIndex = destWord + i
             val srcIndex = srcWord + i
-            data[destIndex] = data[destIndex] xor data[srcIndex]
+            data[destIndex] = data[destIndex] xor srcMatrix.data[srcIndex]
         }
     }
 
@@ -100,12 +97,22 @@ public class DenseMatrixGF2(
     }
 
     public companion object {
+        /*
+            public companion object {
+        internal fun mul(a: SparseMatrixGF2, b: MatrixGF256): MatrixGF256 {
+            val result = MatrixGF256(a.rows, b.cols)
+            a.generate { row, col ->
+                result.addAssignRow(row, col, b)
+            }
+            return result
+        }
+    }
+         */
+
         internal fun mul(a: SparseMatrixGF2, b: DenseMatrixGF2): DenseMatrixGF2 {
             val result = DenseMatrixGF2(a.rows, b.cols)
             a.generate { row, col ->
-                for (i in 0 until b.cols) {
-                    result[row, i] = result[row, i] xor b[col, i]
-                }
+                result.addAssignRow(row, col, b)
             }
             return result
         }

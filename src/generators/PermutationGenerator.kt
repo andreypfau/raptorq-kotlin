@@ -6,7 +6,7 @@ public class PermutationGenerator(
 ) : Generator by generator {
     private val p = p.inversePermutation()
 
-    override fun generate(block: (Int, Int) -> Unit) {
+    override fun generate(block: GeneratorBlock) {
         generator.generate { row, col ->
             block(row, p[col])
         }

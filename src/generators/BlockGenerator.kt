@@ -15,7 +15,7 @@ public class BlockGenerator(
         return result
     }
 
-    override fun generate(block: (Int, Int) -> Unit) {
+    override fun generate(block: GeneratorBlock) {
         var rowOffset = 0
         var nextRowOffset = 0
         var colOffset = 0

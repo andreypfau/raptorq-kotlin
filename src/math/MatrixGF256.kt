@@ -1,5 +1,8 @@
 package io.github.andreypfau.raptorq.math
 
+import io.github.andreypfau.raptorq.math.Octet.Companion.MUL_PRE_CALC
+import kotlin.experimental.xor
+
 public interface MatrixGF256View {
     public val cols: Int
     public val rows: Int
@@ -49,20 +52,19 @@ public class MatrixGF256(
         srcRow: Int,
         srcMatrix: MatrixGF256 = this
     ) {
-        val destRowData = data[destRow]
-        val srcRowData = srcMatrix.data[srcRow]
-        val cols = cols
+        val destRowData = data[destRow].data
+        val srcRowData = srcMatrix.data[srcRow].data
         for (i in 0 until cols) {
-            destRowData[i] = destRowData[i] + srcRowData[i]
+            destRowData[i] = destRowData[i] xor srcRowData[i]
         }
     }
 
     public fun addAssign(other: MatrixGF256) {
         for (row in 0 until rows) {
-            val destRow = data[row]
-            val srcRow = other.data[row]
+            val destRow = data[row].data
+            val srcRow = other.data[row].data
             for (col in 0 until cols) {
-                destRow[col] = destRow[col] + srcRow[col]
+                destRow[col] = destRow[col] xor srcRow[col]
             }
         }
     }
@@ -85,11 +87,12 @@ public class MatrixGF256(
             Octet.ZERO -> return
             Octet.ONE -> return addAssignRow(destRow, srcRow, srcMatrix)
             else -> {
-                val destRowData = data[destRow]
-                val srcRowData = srcMatrix.data[srcRow]
+                val destRowData = data[destRow].data
+                val srcRowData = srcMatrix.data[srcRow].data
                 val cols = cols
+                val mul = octet.toInt()
                 for (i in 0 until cols) {
-                    destRowData[i] = destRowData[i] + (srcRowData[i] * octet)
+                    destRowData[i] = destRowData[i] xor MUL_PRE_CALC[srcRowData[i].toInt() and 0xFF][mul]
                 }
             }
         }
