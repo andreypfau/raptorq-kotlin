@@ -39,16 +39,80 @@ public class MatrixGF256(
     public fun applyRowPermutation(rowPermutation: IntArray): MatrixGF256 {
         val result = MatrixGF256(rows, cols)
         for (i in 0 until rows) {
-            result.data[i] = data[rowPermutation[i]]
+            data[rowPermutation[i]].copyInto(result.data[i])
         }
         return result
     }
 
-    public operator fun plus(m: MatrixGF256): MatrixGF256 =  apply {
-        for (i in 0 until rows) {
-            val to = get(i)
-            val from = m[i]
-            from.copyInto(to)
+    public fun addAssignRow(
+        destRow: Int,
+        srcRow: Int,
+        srcMatrix: MatrixGF256 = this
+    ) {
+        val destRowData = data[destRow]
+        val srcRowData = srcMatrix.data[srcRow]
+        val cols = cols
+        for (i in 0 until cols) {
+            destRowData[i] = destRowData[i] + srcRowData[i]
+        }
+    }
+
+    public fun addAssign(other: MatrixGF256) {
+        for (row in 0 until rows) {
+            val destRow = data[row]
+            val srcRow = other.data[row]
+            for (col in 0 until cols) {
+                destRow[col] = destRow[col] + srcRow[col]
+            }
+        }
+    }
+
+    public fun addMulAssignRow(
+        destRow: Int,
+        srcRow: Int,
+        octet: Octet
+    ) {
+        addMulAssignRow(destRow, srcRow, this, octet)
+    }
+
+    public fun addMulAssignRow(
+        destRow: Int,
+        srcRow: Int,
+        srcMatrix: MatrixGF256,
+        octet: Octet
+    ) {
+        when (octet) {
+            Octet.ZERO -> return
+            Octet.ONE -> return addAssignRow(destRow, srcRow, srcMatrix)
+            else -> {
+                val destRowData = data[destRow]
+                val srcRowData = srcMatrix.data[srcRow]
+                val cols = cols
+                for (i in 0 until cols) {
+                    destRowData[i] = destRowData[i] + (srcRowData[i] * octet)
+                }
+            }
+        }
+    }
+
+    public fun mulAssignRow(
+        row: Int,
+        octet: Octet
+    ) {
+        val rowData = data[row]
+        for (i in 0 until cols) {
+            rowData[i] = rowData[i] * octet
+        }
+    }
+
+    @OptIn(ExperimentalStdlibApi::class)
+    override fun toString(): String = buildString {
+        append("\n")
+        for (row in 0 until rows) {
+            append(data[row].data.toHexString(HexFormat {
+                bytes.byteSeparator = " "
+            }))
+            append('\n')
         }
     }
 
@@ -65,4 +129,15 @@ public class MatrixGF256(
     public fun blockView(rowOffset: Int, colOffset: Int, rowSize: Int, colSize: Int): BlockView {
         return BlockView(rowOffset, colOffset, rowSize, colSize, this)
     }
+
+    public companion object {
+        internal fun mul(a: SparseMatrixGF2, b: MatrixGF256): MatrixGF256 {
+            val result = MatrixGF256(a.rows, b.cols)
+            a.generate { row, col ->
+                result.addAssignRow(row, col, b)
+            }
+            return result
+        }
+    }
+
 }

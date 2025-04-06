@@ -8,40 +8,62 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 public data class EncodingRow(
+    /**
+     * `d` is a positive integer denoting an encoding symbol LT degree
+     */
     public val d: UInt,
+
+    /**
+     * `a` is a positive integer between 1 and W-1 inclusive
+     */
     public val a: UInt,
+
+    /**
+     * `b` is a non-negative integer between 0 and W-1 inclusive
+     */
     public val b: UInt,
+
+    /**
+     * `d1` is a positive integer that has value either 2 or 3 denoting an encoding symbol PI degree
+     */
     public val d1: UInt,
+
+    /**
+     * `a1` is a positive integer between 1 and P1-1 inclusive
+     */
     public val a1: UInt,
+
+    /**
+     * b1 is a non-negative integer between 0 and P1-1 inclusive
+     */
     public val b1: UInt
 ) {
-    init {
-        if (a == 31879u && d == 2u) {
-            print("")
-        }
-    }
-
     val size: Int get() = (d + d1).toInt()
 
     public companion object {
+        // Tuple[K', X] as defined in section 5.3.5.4
         public fun fromParameters(parameters: Parameters, x: Int): EncodingRow {
-            var A = 53591u + parameters.j * 997u
-            if (A % 2u == 0u) {
-                A++
+            val j = parameters.systematicIndex
+            val w = parameters.ltSymbols
+            val p1 = parameters.p1
+
+            var aLocal = 53591u + j * 997u
+            if (aLocal % 2u == 0u) {
+                aLocal++
             }
-            val bLocal = 10267u * (parameters.j + 1u)
-            val y = bLocal + x.toUInt() * A
+            val bLocal = 10267u * (j + 1u)
+            val y = bLocal + x.toUInt() * aLocal
             val v = Rand.rand(y.toInt(), 0, 1 shl 20)
-            val d = Deg.deg(v, parameters.w.toInt()).toUInt()
-            val a = 1u + Rand.rand(y.toInt(), 1, (parameters.w - 1u).toInt()).toUInt()
-            val b = Rand.rand(y.toInt(), 2, parameters.w.toInt()).toUInt()
+            val d = Deg.deg(v, w).toUInt()
+            val a = 1u + Rand.rand(y.toInt(), 1, (w - 1)).toUInt()
+            val b = Rand.rand(y.toInt(), 2, w).toUInt()
             val d1 = if (d < 4u) {
                 2u + Rand.rand(x, 3, 2).toUInt()
             } else {
                 2u
             }
-            val a1 = 1u + Rand.rand(x, 4, parameters.p1 - 1).toUInt()
-            val b1 = Rand.rand(x, 5, parameters.p1).toUInt()
+            val a1 = 1u + Rand.rand(x, 4, p1 - 1).toUInt()
+            val b1 = Rand.rand(x, 5, p1).toUInt()
             return EncodingRow(d, a, b, d1, a1, b1)
         }
     }
@@ -49,40 +71,80 @@ public data class EncodingRow(
 
 public data class Parameters(
     public val k: Int,
+
     public val kPadded: Int,
-    public val j: UInt,
-    public val s: Int,
-    public val h: Int,
-    public val w: UInt,
-    public val l: Int,
-    public val p: Int,
+
+    /**
+     * `J(K')`, the systematic index
+     */
+    public val systematicIndex: UInt,
+
+    /**
+     * `S(K')`, the number of LDPC symbols
+     */
+    public val ldpcSymbols: Int,
+
+    /**
+     * `H(K')`, the number of HDPC symbols
+     */
+    public val hdpcSymbols: Int,
+
+    /**
+     * `W(K')`, the number of LT symbols
+     */
+    public val ltSymbols: Int,
+
+    /**
+     * `L`, the number of intermediate symbols
+     */
+    public val intermediateSymbols: Int,
+
+    /**
+     * `P`, the number of PI symbols
+     */
+    public val piSymbols: Int,
+
+    /**
+     * `P1`, smallest prime larger than `P`
+     */
     public val p1: Int,
     public val u: UInt,
     public val b: Int,
 ) {
     public fun getEncodingRow(x: Int): EncodingRow = EncodingRow.fromParameters(this, x)
 
+    // Simulates Enc[] function to iterate indices of accessed intermediate symbols, as defined in section 5.3.5.3
     @OptIn(ExperimentalContracts::class)
     public fun encodingRowForEach(encodingRow: EncodingRow, block: (Int) -> Unit) {
         contract {
             callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
         }
-        var b1 = encodingRow.b1
-        var b = encodingRow.b
+
+        val w = ltSymbols.toLong()
+        val p = piSymbols
+        val p1 = p1.toLong()
+
+        val d = encodingRow.d.toInt()
+        val a = encodingRow.a.toLong()
+        var b = encodingRow.b.toLong()
+        val d1 = encodingRow.d1.toInt()
+        val a1 = encodingRow.a1.toLong()
+        var b1 = encodingRow.b1.toLong()
+
         block(b.toInt())
-        repeat((encodingRow.d - 1u).toInt()) {
-            b = (b + encodingRow.a) % w
+        repeat(d - 1) {
+            b = (b + a) % w
             block(b.toInt())
         }
-        while (b1 >= p.toUInt()) {
-            b1 = (b1 + encodingRow.a1) % p1.toUInt()
+        while (b1.toInt() >= p) {
+            b1 = (b1 + a1) % p1
         }
 
         block((w + b1).toInt())
-        repeat((encodingRow.d1 - 1u).toInt()) {
-            b1 = (b1 + encodingRow.a1) % p1.toUInt()
-            while (b1 >= p.toUInt()) {
-                b1 = (b1 + encodingRow.a1) % p1.toUInt()
+        repeat(d1 - 1) {
+            b1 = (b1 + a1) % p1
+            while (b1.toInt() >= p) {
+                b1 = (b1 + a1) % p1
             }
             block((w + b1).toInt())
         }
@@ -91,8 +153,12 @@ public data class Parameters(
     public fun upperA(encodingRows: Array<EncodingRow>): SparseMatrixGF2 =
         SparseMatrixGF2(
             BlockGenerator(
-                (s + encodingRows.size), l,
-                LDPC1(s, b), IdentityGenerator(s), LDPC2(s, p), ENC(this, encodingRows)
+                (ldpcSymbols + encodingRows.size),
+                intermediateSymbols,
+                LDPC1(ldpcSymbols, b),
+                IdentityGenerator(ldpcSymbols),
+                LDPC2(ldpcSymbols, piSymbols),
+                ENC(this, encodingRows)
             )
         )
 
@@ -608,7 +674,7 @@ public data class Parameters(
             while (!isPrime(p1)) {
                 p1++
             }
-            return Parameters(k, kPadded, j, s, h, w, l.toInt(), p.toInt(), p1, u, b)
+            return Parameters(k, kPadded, j, s, h, w.toInt(), l.toInt(), p.toInt(), p1, u, b)
         }
 
         private fun isPrime(n: Int): Boolean {

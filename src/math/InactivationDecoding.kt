@@ -30,10 +30,14 @@ public class InactivationDecoding(
         }
         val side = pCols.size
         for (col in inactiveCols.asReversed()) {
-            pCols.add(col)
+            pCols.add(col.also {
+                check(it != -1)
+            })
         }
         for (i in 0 until pi) {
-            pCols.add(cols + i)
+            pCols.add((cols + i).also {
+                check(it != -1)
+            })
         }
 
         return InactivationDecodingResult(side, pRows, pCols)
@@ -58,8 +62,9 @@ public class InactivationDecoding(
         for (i in 1 until cols + 1) {
             rowCntOffset[i] += rowCntOffset[i - 1]
         }
+        val offset = rowCntOffset.clone()
         for (i in 0 until rows) {
-            val pos = rowCntOffset[rowCnt[i]]++
+            val pos = offset[rowCnt[i]]++
             sortedRows[pos] = i
             rowsPos[i] = pos
         }
@@ -92,11 +97,11 @@ public class InactivationDecoding(
 
     private fun chooseCol(row: Int): Int {
         val cnt = rowCnt[row]
-        if (cnt == 0) {
+        if (cnt == 1) {
             return rowXor[row]
         }
         var bestCol = -1
-        for (col in l.col(row)) {
+        for (col in lRows.col(row)) {
             if (col >= cols || wasCol[col]) {
                 continue
             }

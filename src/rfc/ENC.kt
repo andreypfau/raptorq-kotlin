@@ -9,15 +9,9 @@ public class ENC(
     override val rows: Int
         get() = encodingRows.size
     override val cols: Int
-        get() = parameters.l
+        get() = parameters.intermediateSymbols
     override val nonZeroes: Int
-        get() {
-            var result = 0
-            for (row in encodingRows) {
-                result += row.size
-            }
-            return result
-        }
+        get() = encodingRows.sumOf { it.size }
 
     override fun generate(block: (Int, Int) -> Unit) {
         for ((row, encodingRow) in encodingRows.withIndex()) {

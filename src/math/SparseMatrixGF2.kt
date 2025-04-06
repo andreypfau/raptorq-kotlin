@@ -3,7 +3,6 @@ package io.github.andreypfau.raptorq.math
 import io.github.andreypfau.raptorq.generators.Generator
 import io.github.andreypfau.raptorq.generators.PermutationGenerator
 import io.github.andreypfau.raptorq.generators.TransposeGenerator
-import io.github.andreypfau.raptorq.generators.inversePermutation
 
 public class SparseMatrixGF2(
     public override val rows: Int,
@@ -41,7 +40,7 @@ public class SparseMatrixGF2(
         }
     }
 
-    public fun col(index: Int): Iterator<Int> = ColIterator(index)
+    internal fun col(index: Int, from: Int = 0) = ColIterator(index, from)
 
     public fun blockForEach(
         rowStartIndex: Int,
@@ -50,9 +49,19 @@ public class SparseMatrixGF2(
         colSize: Int,
         block: (Int, Int) -> Unit
     ) {
-        for (row in rowStartIndex until rowStartIndex + rowSize) {
-            for (col in colStartIndex until colStartIndex + colSize) {
-                block(row - rowStartIndex, col - colStartIndex)
+        val colTill = colStartIndex + colSize
+        val rowTill = rowStartIndex + rowSize
+        for (colIndex in colStartIndex until colTill) {
+            val col = col(colIndex, rowStartIndex)
+
+            val c = colIndex - colStartIndex
+            while (col.hasNext()) {
+                val row = col.next()
+                if (row >= rowTill) {
+                    break
+                }
+                val r = row - rowStartIndex
+                block(r, c)
             }
         }
     }
@@ -61,8 +70,8 @@ public class SparseMatrixGF2(
         blockForEach(0, 0, rows, cols, block)
     }
 
-    public fun blockDense(rowStartIndex: Int, colStartIndex: Int, rowSize: Int, colSize: Int): MatrixGF2 {
-        val result = MatrixGF2(rowSize, colSize)
+    public fun blockDense(rowStartIndex: Int, colStartIndex: Int, rowSize: Int, colSize: Int): DenseMatrixGF2 {
+        val result = DenseMatrixGF2(rowSize, colSize)
         blockForEach(rowStartIndex, colStartIndex, rowSize, colSize) { row, col ->
             result.setOne(row, col)
         }
@@ -72,37 +81,57 @@ public class SparseMatrixGF2(
     public fun blockSparse(rowStartIndex: Int, colStartIndex: Int, rowSize: Int, colSize: Int): SparseMatrixGF2 =
         SparseMatrixGF2(BlockView(rowStartIndex, colStartIndex, rowSize, colSize, this))
 
-    public fun transpose(): SparseMatrixGF2 = SparseMatrixGF2(TransposeGenerator(this))
+    public fun transpose(): SparseMatrixGF2 =
+        SparseMatrixGF2(TransposeGenerator(this))
 
     public fun applyColPermutation(p: IntArray): SparseMatrixGF2 =
-        SparseMatrixGF2(PermutationGenerator(this, p.inversePermutation()))
+        SparseMatrixGF2(PermutationGenerator(this, p))
 
-    public fun applyRowPermutation(p: IntArray): SparseMatrixGF2 = transpose().applyColPermutation(p).transpose()
-
-    public operator fun times(matrix: MatrixGF2): MatrixGF2 {
-        val result = MatrixGF2(rows, matrix.cols)
-        generate { row, col ->
-            result[row] + matrix[col]
-        }
+    public fun applyRowPermutation(p: IntArray): SparseMatrixGF2 {
+        var result = this
+        result = result.transpose()
+        result = result.applyColPermutation(p)
+        result = result.transpose()
         return result
     }
 
-    public operator fun times(matrixGF256: MatrixGF256): MatrixGF256 {
-        val result = MatrixGF256(rows, matrixGF256.cols)
-        generate { row, col ->
-            result[row] + matrixGF256[col]
-        }
-        return result
+    public operator fun times(other: DenseMatrixGF2): DenseMatrixGF2 {
+        return DenseMatrixGF2.mul(this, other)
     }
 
-    private inner class ColIterator(
-        index: Int
+    public operator fun times(other: MatrixGF256): MatrixGF256 {
+        return MatrixGF256.mul(this, other)
+    }
+
+    internal inner class ColIterator(
+        index: Int,
+        rowFrom: Int = 0
     ) : Iterator<Int> {
         var pointer = colOffset[index]
         val size = colOffset[index + 1] - pointer
         val lastIndex = pointer + size
 
+        init {
+            if (rowFrom > 0) {
+                var left = pointer
+                var right = lastIndex
+                while (left < right) {
+                    val mid = (left + right) ushr 1
+                    if (data[mid] < rowFrom) {
+                        left = mid + 1
+                    } else {
+                        right = mid
+                    }
+                }
+                pointer = left
+            }
+        }
+
         override fun hasNext(): Boolean = pointer < lastIndex
+
+        fun drop(n: Int) {
+            pointer += n
+        }
 
         override fun next(): Int {
             if (!hasNext()) throw NoSuchElementException()

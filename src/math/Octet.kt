@@ -8,24 +8,35 @@ public value class Octet(
     public val value: Byte
 ) {
     public constructor(value: Int) : this(value.toByte())
+    public constructor(value: Boolean) : this(if (value) 1.toByte() else 0.toByte())
 
-    public operator fun times(multiplier: Octet): Octet =
-        MUL_PRE_CALC[toInt()][multiplier.toInt()].toOctet()
+    public operator fun times(multiplier: Octet): Octet {
+        return MUL_PRE_CALC[toInt()][multiplier.toInt()].toOctet()
+    }
+
+    public operator fun div(multiplier: Octet): Octet {
+        if (multiplier.value == 0.toByte()) {
+            throw ArithmeticException("Division by zero")
+        }
+        return OCT_EXP[OCT_LOG[toInt()].toInt() - OCT_LOG[multiplier.toInt()].toInt() + 255].toOctet()
+    }
 
     public operator fun plus(other: Octet): Octet =
         Octet(value xor other.value)
 
+    public operator fun minus(other: Octet): Octet =
+        Octet(value xor other.value)
 
-    public fun inv(): Octet = EXP_PRE_CALC[255 - LOG_PRE_CALC[toInt()].toInt()].toOctet()
+    public fun inv(): Octet = OCT_EXP[255 - OCT_LOG[toInt()].toInt()].toOctet()
 
     public fun toByte(): Byte = value
-    public fun toInt(): Int = value.toUInt().toInt()
+    public fun toInt(): Int = value.toInt() and 0xFF
 
-    public fun exp(): Octet = EXP_PRE_CALC[toInt()].toOctet()
+    public fun exp(): Octet = OCT_EXP[toInt()].toOctet()
 
     public companion object {
         // @formatter:off
-        private val LOG_PRE_CALC = ubyteArrayOf(
+        private val OCT_LOG = ubyteArrayOf(
             0u, 0u, 1u, 25u, 2u, 50u, 26u, 198u, 3u, 223u, 51u, 238u, 27u, 104u, 199u, 75u, 4u, 100u, 224u, 14u, 52u, 141u, 239u,
             129u, 28u, 193u, 105u, 248u, 200u, 8u, 76u, 113u, 5u, 138u, 101u, 47u, 225u, 36u, 15u, 33u, 53u, 147u, 142u, 218u, 240u,
             18u, 130u, 69u, 29u, 181u, 194u, 125u, 106u, 39u, 249u, 185u, 201u, 154u, 9u, 120u, 77u, 228u, 114u, 166u, 6u, 191u, 139u,
@@ -42,7 +53,7 @@ public value class Octet(
         // @formatter:on
 
         // @formatter:off
-        private val EXP_PRE_CALC = ubyteArrayOf(
+        private val OCT_EXP = ubyteArrayOf(
             1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u, 29u, 58u, 116u, 232u, 205u, 135u, 19u, 38u, 76u, 152u, 45u, 90u, 180u, 117u,
             234u, 201u, 143u, 3u, 6u, 12u, 24u, 48u, 96u, 192u, 157u, 39u, 78u, 156u, 37u, 74u, 148u, 53u, 106u, 212u, 181u, 119u,
             238u, 193u, 159u, 35u, 70u, 140u, 5u, 10u, 20u, 40u, 80u, 160u, 93u, 186u, 105u, 210u, 185u, 111u, 222u, 161u, 95u, 190u,
@@ -70,12 +81,28 @@ public value class Octet(
         ).asByteArray()
         // @formatter:on
 
+        public val ZERO: Octet = Octet(0)
+        public val ONE: Octet = Octet(1)
+        public val ALPHA: Octet = Octet(OCT_EXP[1])
         internal val MUL_PRE_CALC = Array(256) { i ->
-            ByteArray(256) { j ->
-                EXP_PRE_CALC[LOG_PRE_CALC[i].toUInt().toInt() + LOG_PRE_CALC[j].toUInt().toInt()]
+            if (i == 0) {
+                ByteArray(256)
+            } else {
+                ByteArray(256) { j ->
+                    if (j == 0) {
+                        0
+                    } else {
+                        OCT_EXP[OCT_LOG[i].toUInt().toInt() + OCT_LOG[j].toUInt().toInt()]
+                    }
+                }
             }
         }
+
+        public fun octExp(value: Int): Octet = OCT_EXP[value].toOctet()
     }
 }
 
 public fun Byte.toOctet(): Octet = Octet(this)
+
+@Suppress("NOTHING_TO_INLINE")
+public inline fun Boolean.toOctet(): Octet = if (this) Octet.ONE else Octet.ZERO
