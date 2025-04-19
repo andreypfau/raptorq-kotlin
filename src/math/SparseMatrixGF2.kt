@@ -1,7 +1,7 @@
 package io.github.andreypfau.raptorq.math
 
 import io.github.andreypfau.raptorq.generators.Generator
-import io.github.andreypfau.raptorq.generators.GeneratorBlock
+import io.github.andreypfau.raptorq.generators.GeneratorFunction
 import io.github.andreypfau.raptorq.generators.PermutationGenerator
 import io.github.andreypfau.raptorq.generators.TransposeGenerator
 
@@ -48,7 +48,7 @@ public class SparseMatrixGF2(
         colStartIndex: Int,
         rowSize: Int,
         colSize: Int,
-        block: GeneratorBlock
+        block: GeneratorFunction
     ) {
         val colTill = colStartIndex + colSize
         val rowTill = rowStartIndex + rowSize
@@ -67,7 +67,7 @@ public class SparseMatrixGF2(
         }
     }
 
-    override fun generate(block: GeneratorBlock) {
+    override fun generate(block: GeneratorFunction) {
         blockForEach(0, 0, rows, cols, block)
     }
 
@@ -156,7 +156,7 @@ public class SparseMatrixGF2(
                 return result
             }
 
-        override fun generate(block: GeneratorBlock) {
+        override fun generate(block: GeneratorFunction) {
             matrix.blockForEach(rowOffset, colOffset, rows, cols, block)
         }
     }

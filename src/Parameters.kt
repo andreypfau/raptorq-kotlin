@@ -1,83 +1,24 @@
-package io.github.andreypfau.raptorq.rfc
+package io.github.andreypfau.raptorq
 
-import io.github.andreypfau.raptorq.generators.BlockGenerator
-import io.github.andreypfau.raptorq.generators.IdentityGenerator
+import io.github.andreypfau.raptorq.generators.*
 import io.github.andreypfau.raptorq.math.SparseMatrixGF2
 import kotlin.contracts.ExperimentalContracts
-import kotlin.contracts.InvocationKind
-import kotlin.contracts.contract
-
-public data class EncodingRow(
-    /**
-     * `d` is a positive integer denoting an encoding symbol LT degree
-     */
-    public val d: UInt,
-
-    /**
-     * `a` is a positive integer between 1 and W-1 inclusive
-     */
-    public val a: UInt,
-
-    /**
-     * `b` is a non-negative integer between 0 and W-1 inclusive
-     */
-    public val b: UInt,
-
-    /**
-     * `d1` is a positive integer that has value either 2 or 3 denoting an encoding symbol PI degree
-     */
-    public val d1: UInt,
-
-    /**
-     * `a1` is a positive integer between 1 and P1-1 inclusive
-     */
-    public val a1: UInt,
-
-    /**
-     * b1 is a non-negative integer between 0 and P1-1 inclusive
-     */
-    public val b1: UInt
-) {
-    val size: Int get() = (d + d1).toInt()
-
-    public companion object {
-        // Tuple[K', X] as defined in section 5.3.5.4
-        public fun fromParameters(parameters: Parameters, x: Int): EncodingRow {
-            val j = parameters.systematicIndex
-            val w = parameters.ltSymbols
-            val p1 = parameters.p1
-
-            var aLocal = 53591u + j * 997u
-            if (aLocal % 2u == 0u) {
-                aLocal++
-            }
-            val bLocal = 10267u * (j + 1u)
-            val y = bLocal + x.toUInt() * aLocal
-            val v = Rand.rand(y.toInt(), 0, 1 shl 20)
-            val d = Deg.deg(v, w).toUInt()
-            val a = 1u + Rand.rand(y.toInt(), 1, (w - 1)).toUInt()
-            val b = Rand.rand(y.toInt(), 2, w).toUInt()
-            val d1 = if (d < 4u) {
-                2u + Rand.rand(x, 3, 2).toUInt()
-            } else {
-                2u
-            }
-            val a1 = 1u + Rand.rand(x, 4, p1 - 1).toUInt()
-            val b1 = Rand.rand(x, 5, p1).toUInt()
-            return EncodingRow(d, a, b, d1, a1, b1)
-        }
-    }
-}
 
 public data class Parameters(
-    public val k: Int,
+    /**
+     * `K`, the number of source symbols
+     */
+    public val sourceSymbols: Int,
 
-    public val kPadded: Int,
+    /**
+     * `K'`, the extended source block size, in symbols
+     */
+    public val extendedSourceSymbols: Int,
 
     /**
      * `J(K')`, the systematic index
      */
-    public val systematicIndex: UInt,
+    public val systematicIndex: Int,
 
     /**
      * `S(K')`, the number of LDPC symbols
@@ -111,25 +52,24 @@ public data class Parameters(
     public val u: UInt,
     public val b: Int,
 ) {
-    public fun getEncodingRow(x: Int): EncodingRow = EncodingRow.fromParameters(this, x)
+    val paddingSymbols: Int get() = extendedSourceSymbols - sourceSymbols
+
+    public fun encodingTuple(internalSymbolId: Int): EncodingTuple =
+        EncodingTuple.fromParameters(this, internalSymbolId)
 
     // Simulates Enc[] function to iterate indices of accessed intermediate symbols, as defined in section 5.3.5.3
     @OptIn(ExperimentalContracts::class)
-    public fun encodingRowForEach(encodingRow: EncodingRow, block: (Int) -> Unit) {
-        contract {
-            callsInPlace(block, InvocationKind.AT_LEAST_ONCE)
-        }
-
+    public fun encode(encodingTuple: EncodingTuple, block: Encoder) {
         val w = ltSymbols.toLong()
         val p = piSymbols
         val p1 = p1.toLong()
 
-        val d = encodingRow.d.toInt()
-        val a = encodingRow.a.toLong()
-        var b = encodingRow.b.toLong()
-        val d1 = encodingRow.d1.toInt()
-        val a1 = encodingRow.a1.toLong()
-        var b1 = encodingRow.b1.toLong()
+        val d = encodingTuple.d.toInt()
+        val a = encodingTuple.a.toLong()
+        var b = encodingTuple.b.toLong()
+        val d1 = encodingTuple.d1.toInt()
+        val a1 = encodingTuple.a1.toLong()
+        var b1 = encodingTuple.b1.toLong()
 
         block(b.toInt())
         repeat(d - 1) {
@@ -150,15 +90,19 @@ public data class Parameters(
         }
     }
 
-    public fun upperA(encodingRows: Array<EncodingRow>): SparseMatrixGF2 =
+    public fun interface Encoder {
+        public operator fun invoke(value: Int)
+    }
+
+    public fun upperA(encodingTuples: Array<EncodingTuple>): SparseMatrixGF2 =
         SparseMatrixGF2(
             BlockGenerator(
-                (ldpcSymbols + encodingRows.size),
+                (ldpcSymbols + encodingTuples.size),
                 intermediateSymbols,
                 LDPC1(ldpcSymbols, b),
                 IdentityGenerator(ldpcSymbols),
                 LDPC2(ldpcSymbols, piSymbols),
-                ENC(this, encodingRows)
+                EncodeGenerator(this, encodingTuples)
             )
         )
 
@@ -662,7 +606,7 @@ public data class Parameters(
 
         private fun fromRawParameters(k: Int, rawParameters: RawParameters): Parameters {
             val kPadded = rawParameters.kPadded
-            val j = rawParameters.j.toUInt()
+            val j = rawParameters.j
             val s = rawParameters.s
             val h = rawParameters.h
             val w = rawParameters.w.toUInt()

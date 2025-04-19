@@ -1,8 +1,8 @@
 package io.github.andreypfau.raptorq.math
 
+import io.github.andreypfau.raptorq.Parameters
+import io.github.andreypfau.raptorq.Rand
 import io.github.andreypfau.raptorq.generators.inversePermutation
-import io.github.andreypfau.raptorq.rfc.Parameters
-import io.github.andreypfau.raptorq.rfc.Rand
 import kotlin.time.TimeSource
 
 internal object Solver {
@@ -11,7 +11,8 @@ internal object Solver {
     operator fun invoke(
         parameters: Parameters,
         symbols: Array<ByteArray>,
-    ): MatrixGF256 {
+        symbolIds: IntArray,
+    ): MatrixGF256? {
         var timer = TimeSource.Monotonic.markNow()
 
         fun perfLog(message: () -> String) {
@@ -34,9 +35,9 @@ internal object Solver {
         // +---------------+------+
         // | HDCP          | I_H  |
         // +---------------+------+
-        check(parameters.kPadded <= symbols.size)
-        val encodingRows = Array(symbols.size) {
-            parameters.getEncodingRow(it)
+        check(parameters.extendedSourceSymbols <= symbolIds.size)
+        val encodingRows = Array(symbolIds.size) {
+            parameters.encodingTuple(symbolIds[it])
         }
 
         // Generate matrix upper_A: sparse part of A, first S + K_padded rows.
@@ -113,8 +114,8 @@ internal object Solver {
 
         // Calculate HDPC_right and set it into small_A_lower
         var t = MatrixGF256(
-            parameters.kPadded + parameters.ldpcSymbols,
-            parameters.kPadded + parameters.ldpcSymbols - uSize
+            parameters.extendedSourceSymbols + parameters.ldpcSymbols,
+            parameters.extendedSourceSymbols + parameters.ldpcSymbols - uSize
         )
         for (i in 0 until t.cols) {
             t[colPermutation[i + t.rows - t.cols], i] = Octet.ONE
@@ -162,7 +163,7 @@ internal object Solver {
 
         val smallC = gaussianElimination(smallA, smallD)?.also {
             perfLog { "gauss" }
-        } ?: throw IllegalStateException("Gaussian elimination failed")
+        } ?: return null
 
         c.setFrom(smallC.blockView(0, 0, c.rows - uSize, c.cols), uSize, 0)
         val upperAT = upperA.transpose()
@@ -198,7 +199,7 @@ internal object Solver {
         parameters: Parameters,
         colPermutation: IntArray
     ): MatrixGF256 {
-        val t = MatrixGF256(parameters.kPadded + parameters.ldpcSymbols, m.cols)
+        val t = MatrixGF256(parameters.extendedSourceSymbols + parameters.ldpcSymbols, m.cols)
         for (i in 0 until m.rows) {
             m[i].copyInto(t[colPermutation[i]])
         }

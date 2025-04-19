@@ -1,4 +1,4 @@
-package io.github.andreypfau.raptorq.rfc
+package io.github.andreypfau.raptorq
 
 /**
  * 5.5.  Random Numbers

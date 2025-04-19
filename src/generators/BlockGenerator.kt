@@ -15,7 +15,7 @@ public class BlockGenerator(
         return result
     }
 
-    override fun generate(block: GeneratorBlock) {
+    override fun generate(block: GeneratorFunction) {
         var rowOffset = 0
         var nextRowOffset = 0
         var colOffset = 0

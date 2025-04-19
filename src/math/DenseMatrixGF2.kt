@@ -97,18 +97,6 @@ public class DenseMatrixGF2(
     }
 
     public companion object {
-        /*
-            public companion object {
-        internal fun mul(a: SparseMatrixGF2, b: MatrixGF256): MatrixGF256 {
-            val result = MatrixGF256(a.rows, b.cols)
-            a.generate { row, col ->
-                result.addAssignRow(row, col, b)
-            }
-            return result
-        }
-    }
-         */
-
         internal fun mul(a: SparseMatrixGF2, b: DenseMatrixGF2): DenseMatrixGF2 {
             val result = DenseMatrixGF2(a.rows, b.cols)
             a.generate { row, col ->

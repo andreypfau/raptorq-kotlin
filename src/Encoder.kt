@@ -1,19 +1,33 @@
 package io.github.andreypfau.raptorq
 
+import io.github.andreypfau.raptorq.math.MatrixGF256
 import io.github.andreypfau.raptorq.math.Solver
-import io.github.andreypfau.raptorq.rfc.Parameters
 import kotlin.math.min
 
 public class Encoder(
     public val parameters: Parameters,
     public val symbolSize: Int,
-    public val dataSize: Int,
-    private val symbols: Array<ByteArray>,
+    data: ByteArray,
+    private var solvedC: MatrixGF256? = null,
 ) {
-    public val symbolCount: Int get() = parameters.k
-    private val rawEncoder: RawEncoder by lazy(LazyThreadSafetyMode.SYNCHRONIZED) {
-        val matrix = Solver(parameters, symbols)
-        RawEncoder(parameters, matrix)
+    public constructor(symbolSize: Int, data: ByteArray) : this(
+        Parameters.fromK((data.size + symbolSize - 1) / symbolSize),
+        symbolSize,
+        data
+    )
+
+    public val dataSize: Int = data.size
+
+    private val d = MatrixGF256(1, symbolSize)
+
+    private val sourceSymbols: Array<ByteArray> = Array(parameters.extendedSourceSymbols) { id ->
+        val symbol = ByteArray(symbolSize)
+        val offset = id * symbolSize
+        val length = min(symbolSize, data.size - offset)
+        if (length > 0) {
+            data.copyInto(symbol, 0, offset, offset + length)
+        }
+        symbol
     }
 
     public fun encodeIntoByteArray(
@@ -21,10 +35,18 @@ public class Encoder(
         destination: ByteArray,
         destinationOffset: Int = 0,
     ) {
-        if (symbolId < parameters.k) {
-            symbols[symbolId].copyInto(destination, destinationOffset)
+        if (symbolId < parameters.sourceSymbols) {
+            sourceSymbols[symbolId].copyInto(destination, destinationOffset)
         } else {
-            rawEncoder.encodeIntoByteArray(symbolId + parameters.kPadded - parameters.k, destination, destinationOffset)
+            val internalSymbolId = symbolId + parameters.paddingSymbols
+            val tuple = parameters.encodingTuple(internalSymbolId)
+            val c = solve()
+            val d = d
+            d[0].fillZero()
+            parameters.encode(tuple) { row ->
+                d.addAssignRow(0, row, c)
+            }
+            d[0].data.copyInto(destination, destinationOffset, 0, symbolSize)
         }
     }
 
@@ -34,26 +56,14 @@ public class Encoder(
         return result
     }
 
-    public fun prepareMoreSymbols() {
-        rawEncoder
-    }
-
-    public companion object {
-        public fun create(
-            symbolSize: Int,
-            data: ByteArray
-        ): Encoder {
-            val parameters = Parameters.fromK((data.size + symbolSize - 1) / symbolSize)
-            val firstSymbols = Array(parameters.kPadded) { id ->
-                val symbol = ByteArray(symbolSize)
-                val offset = id * symbolSize
-                val length = min(symbolSize, data.size - offset)
-                if (length > 0) {
-                    data.copyInto(symbol, 0, offset, offset + length)
-                }
-                symbol
-            }
-            return Encoder(parameters, symbolSize, data.size, firstSymbols)
+    private fun solve(): MatrixGF256 {
+        var c = solvedC
+        if (c != null) {
+            return c
         }
+        val symbolIds = IntArray(sourceSymbols.size) { it }
+        c = Solver(parameters, sourceSymbols, symbolIds) ?: throw IllegalStateException("Failed to solve pi")
+        solvedC = c
+        return c
     }
 }

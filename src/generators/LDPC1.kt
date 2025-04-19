@@ -1,7 +1,4 @@
-package io.github.andreypfau.raptorq.rfc
-
-import io.github.andreypfau.raptorq.generators.Generator
-import io.github.andreypfau.raptorq.generators.GeneratorBlock
+package io.github.andreypfau.raptorq.generators
 
 public class LDPC1(
     public override val rows: Int,
@@ -9,7 +6,7 @@ public class LDPC1(
 ) : Generator {
     public override val nonZeroes: Int get() = cols * 3
 
-    public override fun generate(block: GeneratorBlock) {
+    public override fun generate(block: GeneratorFunction) {
         for (col in 0 until cols) {
             val i = col / rows
             val shift = col % rows

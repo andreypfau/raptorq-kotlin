@@ -5,9 +5,9 @@ public interface Generator {
     public val cols: Int
     public val nonZeroes: Int
 
-    public fun generate(block: GeneratorBlock)
+    public fun generate(block: GeneratorFunction)
 }
 
-public fun interface GeneratorBlock {
+public fun interface GeneratorFunction {
     public operator fun invoke(row: Int, col: Int)
 }
