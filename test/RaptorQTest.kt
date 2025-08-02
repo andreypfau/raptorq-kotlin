@@ -16,7 +16,7 @@ class RaptorQTest {
 //        val seed = Random.nextLong()
         val data = XorShift128Plus(333)
             .nextString('a', 'z', maxSymbolSize * symbolCount)
-        fecTest(data.toByteArray(), maxSymbolSize)
+        fecTest(data.encodeToByteArray(), maxSymbolSize)
     }
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -39,7 +39,7 @@ class RaptorQTest {
             val canDecode = decoder.addSymbol(i, symbol)
 
             sentSymbols++
-            if (canDecode) { // декодер может восстановить данные
+            if (canDecode) {
                 val result = decoder.decodeFullyToByteArray()
 //                println("try decode result: ${result != null}")
 

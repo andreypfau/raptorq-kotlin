@@ -25,7 +25,7 @@ public class SparseMatrixGF2(
         for (i in 1 until colOffset.size) {
             colOffset[i] += colOffset[i - 1]
         }
-        val colPos = colOffset.clone()
+        val colPos = colOffset.copyOf()
 
         generator.generate { row, col ->
             data[colPos[col]++] = row

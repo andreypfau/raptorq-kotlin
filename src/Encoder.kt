@@ -56,7 +56,7 @@ public class Encoder(
         return result
     }
 
-    private fun solve(): MatrixGF256 {
+    public fun solve(): MatrixGF256 {
         var c = solvedC
         if (c != null) {
             return c

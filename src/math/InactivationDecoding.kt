@@ -62,7 +62,7 @@ public class InactivationDecoding(
         for (i in 1 until cols + 1) {
             rowCntOffset[i] += rowCntOffset[i - 1]
         }
-        val offset = rowCntOffset.clone()
+        val offset = rowCntOffset.copyOf()
         for (i in 0 until rows) {
             val pos = offset[rowCnt[i]]++
             sortedRows[pos] = i

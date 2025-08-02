@@ -1,6 +1,7 @@
 package io.github.andreypfau.raptorq.math
 
 import kotlin.experimental.xor
+import kotlin.jvm.JvmInline
 
 @JvmInline
 @OptIn(ExperimentalUnsignedTypes::class)

@@ -29,9 +29,9 @@ public class Decoder(
 
     public fun addSymbol(
         symbolId: Int,
-        data: ByteArray,
+        source: ByteArray,
         startIndex: Int = 0,
-        endIndex: Int = data.size,
+        endIndex: Int = source.size,
     ): Boolean {
         val size = endIndex - startIndex
         require(size == symbolSize) {
@@ -42,7 +42,7 @@ public class Decoder(
         }
         if (symbolId < parameters.sourceSymbols) {
             if (!sourceSymbolMask[symbolId]) {
-                data.copyInto(sourceData, symbolId * symbolSize, startIndex, endIndex)
+                source.copyInto(sourceData, symbolId * symbolSize, startIndex, endIndex)
                 sourceSymbolMask[symbolId] = true
                 receivedSourceSymbols++
             }
@@ -51,7 +51,7 @@ public class Decoder(
             val isi = symbolId + parameters.paddingSymbols
             if (repairSymbolsIds.add(isi)) {
                 val symbol = ByteArray(symbolSize)
-                data.copyInto(symbol, startIndex, 0, size)
+                source.copyInto(symbol, startIndex, 0, size)
                 repairSymbols.add(symbol)
             }
         }
@@ -124,7 +124,7 @@ public class Decoder(
         return totalLength - remainingBytes
     }
 
-    private fun solve(): MatrixGF256? {
+    public fun solve(): MatrixGF256? {
         var solvedC = solvedC
         if (solvedC != null) {
             return solvedC
