@@ -595,6 +595,11 @@ public data class Parameters(
             RawParameters(56403, 471, 907, 16, 56951)
         )
 
+        public fun fromSize(
+            dataSize: Int,
+            symbolSize: Int,
+        ): Parameters = fromK((dataSize + symbolSize - 1) / symbolSize)
+
         public fun fromK(k: Int): Parameters {
             for (rfcParameter in RFC_PARAMETERS) {
                 if (rfcParameter.kPadded >= k) {

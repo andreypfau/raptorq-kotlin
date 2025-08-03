@@ -78,7 +78,7 @@ mavenPublishing {
         signAllPublications()
     }
 
-    coordinates(group.toString(), "raptor-kotlin", version.toString())
+    coordinates(group.toString(), "raptorq-kotlin", version.toString())
 
     pom {
         name = "RaptorQ Kotlin"

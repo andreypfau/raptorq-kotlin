@@ -11,7 +11,7 @@ public class Encoder(
     private var solvedC: MatrixGF256? = null,
 ) {
     public constructor(symbolSize: Int, data: ByteArray) : this(
-        Parameters.fromK((data.size + symbolSize - 1) / symbolSize),
+        Parameters.fromSize(data.size, symbolSize),
         symbolSize,
         data
     )

@@ -10,9 +10,15 @@ private typealias SymbolMask = BooleanArray
 
 public class Decoder(
     public val parameters: Parameters,
-    public val symbolSize: Int,
     public val dataSize: Int,
+    public val symbolSize: Int,
 ) {
+    public constructor(dataSize: Int, symbolSize: Int) : this(
+        Parameters.fromSize(dataSize, symbolSize),
+        dataSize,
+        symbolSize,
+    )
+
     private val sourceData = ByteArray(parameters.sourceSymbols * symbolSize)
     private val sourceSymbolMask = SymbolMask(parameters.sourceSymbols)
     private val repairSymbols = ArrayList<ByteArray>()
@@ -83,11 +89,12 @@ public class Decoder(
     public fun decodeFullyIntoByteArray(
         destination: ByteArray,
         destinationOffset: Int = 0,
-    ): Int {
+    ): Boolean {
         if (receivedSourceSymbols != parameters.sourceSymbols) {
-            solve() ?: return -1
+            solve() ?: return false
         }
-        return decodeIntoByteArray(destination, destinationOffset)
+        decodeIntoByteArray(destination, destinationOffset)
+        return true
     }
 
     public fun decodeIntoByteArray(
@@ -104,13 +111,7 @@ public class Decoder(
             val offset = symbolId * symbolSize
             if (!sourceSymbolMask[symbolId]) {
                 val solvedC = solve() ?: break
-                d.fillZero()
-                parameters.encode(parameters.encodingTuple(symbolId)) { row ->
-                    d.addAssignRow(0, row, solvedC)
-                }
-                d[0].data.copyInto(sourceData, offset, 0, symbolSize)
-                sourceSymbolMask[symbolId] = true
-                receivedSourceSymbols++
+                recoverSymbolId(symbolId, solvedC)
             }
             val length = min(remainingBytes, symbolSize)
             sourceData.copyInto(
@@ -154,6 +155,31 @@ public class Decoder(
         solvedC = Solver(parameters, encodedSymbols, encodedIds) ?: return null
         this.solvedC = solvedC
         return solvedC
+    }
+
+    public fun solvedEncoderOrNull(): Encoder? {
+        val solved = solvedC ?: return null
+        if (receivedSourceSymbols != parameters.sourceSymbols) {
+            repeat(parameters.sourceSymbols) { symbolId ->
+                recoverSymbolId(symbolId, solved)
+            }
+        }
+
+        return Encoder(parameters, symbolSize, sourceData, solved)
+    }
+
+    private fun recoverSymbolId(symbolId: Int, solved: MatrixGF256) {
+        if (sourceSymbolMask[symbolId]) {
+            return
+        }
+        val offset = symbolId * symbolSize
+        d.fillZero()
+        parameters.encode(parameters.encodingTuple(symbolId)) { row ->
+            d.addAssignRow(0, row, solved)
+        }
+        d[0].data.copyInto(sourceData, offset, 0, symbolSize)
+        sourceSymbolMask[symbolId] = true
+        receivedSourceSymbols++
     }
 
     internal class MatrixBitSet(size: Int) {
