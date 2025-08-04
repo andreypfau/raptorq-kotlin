@@ -10,17 +10,21 @@ plugins {
 }
 
 group = "io.github.andreypfau"
-version = "1.0.0"
+version = "0.1.0"
 
 kotlin {
     explicitApi()
 
-    jvm()
+    jvm {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_1_8)
+        }
+    }
     androidTarget {
         publishLibraryVariants("release")
         @OptIn(ExperimentalKotlinGradlePluginApi::class)
         compilerOptions {
-            jvmTarget.set(JvmTarget.JVM_11)
+            jvmTarget.set(JvmTarget.JVM_1_8)
         }
     }
     iosArm64()
@@ -66,8 +70,8 @@ android {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
     }
 }
 
@@ -84,13 +88,13 @@ mavenPublishing {
         name = "RaptorQ Kotlin"
         description =
             "RaptorQ-Kotlin is a Kotlin Multiplatform library implementing the RaptorQ FEC algorithm (RFC 6330). It enables efficient symbol encoding/decoding for loss-resilient data transport in peer-to-peer or broadcast systems. Suitable for both client and server applications requiring robust data delivery."
-        inceptionYear = "2024"
+        inceptionYear = "2025"
         url = "https://github.com/andreypfau/raptorq-kotlin/"
         licenses {
             license {
                 name = "The Apache License, Version 2.0"
                 url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
-                distribution = "repo"
+                distribution = "https://www.apache.org/licenses/LICENSE-2.0.txt"
             }
         }
         developers {

@@ -107,7 +107,7 @@ public class Decoder(
         val endSymbolId = endIndex / symbolSize
         val totalLength = endIndex - startIndex
         var remainingBytes = totalLength
-        for (symbolId in startSymbolId until endSymbolId) {
+        for (symbolId in startSymbolId..endSymbolId) {
             val offset = symbolId * symbolSize
             if (!sourceSymbolMask[symbolId]) {
                 val solvedC = solve() ?: break
