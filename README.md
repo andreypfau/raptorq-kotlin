@@ -1,10 +1,8 @@
 # raptorq-kotlin
 
-**raptorq-kotlin** is a pure Kotlin implementation of [RaptorQ FEC (RFC 6330)](https://tools.ietf.org/html/rfc6330),
-designed for use in distributed systems, P2P protocols, and applications where reliable transmission with minimal
-redundancy is critical.
-
-Supports Kotlin Multiplatform (JVM, Native, JS).
+Kotlin Multiplatform implementation of the RaptorQ FEC algorithm [(RFC 6330)](https://tools.ietf.org/html/rfc6330),
+suitable for P2P protocols, distributed systems, and UDP-based applications requiring efficient,
+loss-tolerant data transmission.
 
 ---
 
@@ -28,12 +26,9 @@ repositories {
 }
 
 dependencies {
-    implementation("io.github.andreypfau:raptorq-kotlin:0.1.0")
+    implementation("io.github.andreypfau:raptorq-kotlin:1.0.0")
 }
 ```
-
-Replace `<version>` with the latest available version
-on [Maven Central](https://search.maven.org/artifact/io.github.andreypfau/raptorq-kotlin).
 
 ---
 
@@ -68,7 +63,3 @@ fun main() {
 This project is licensed under the Apache 2.0 License. See the [LICENSE](LICENSE) file for details.
 
 ---
-
-## TODO
-
--

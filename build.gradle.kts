@@ -7,10 +7,11 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.vanniktech.mavenPublish)
+    signing
 }
 
 group = "io.github.andreypfau"
-version = "0.1.0"
+version = "1.0.0"
 
 kotlin {
     explicitApi()
@@ -46,6 +47,17 @@ kotlin {
     watchosSimulatorArm64()
     watchosX64()
 
+    @Suppress("OPT_IN_USAGE")
+    wasmJs {
+        browser()
+        nodejs()
+    }
+
+    @Suppress("OPT_IN_USAGE")
+    wasmWasi {
+        nodejs()
+    }
+
     sourceSets {
         val commonMain by getting {
             dependencies {
@@ -78,16 +90,14 @@ android {
 mavenPublishing {
     publishToMavenCentral(SonatypeHost.CENTRAL_PORTAL)
 
-    if (!project.hasProperty("skipSigning")) {
-        signAllPublications()
-    }
+    signAllPublications()
 
     coordinates(group.toString(), "raptorq-kotlin", version.toString())
 
     pom {
-        name = "RaptorQ Kotlin"
+        name = "raptorq-kotlin"
         description =
-            "RaptorQ-Kotlin is a Kotlin Multiplatform library implementing the RaptorQ FEC algorithm (RFC 6330). It enables efficient symbol encoding/decoding for loss-resilient data transport in peer-to-peer or broadcast systems. Suitable for both client and server applications requiring robust data delivery."
+            "Kotlin Multiplatform implementation of the RaptorQ FEC algorithm (RFC 6330), suitable for P2P protocols, distributed systems, and UDP-based applications requiring efficient, loss-tolerant data transmission."
         inceptionYear = "2025"
         url = "https://github.com/andreypfau/raptorq-kotlin/"
         licenses {
@@ -111,6 +121,10 @@ mavenPublishing {
             developerConnection = "scm:git:ssh://github.com:andreypfau/raptorq-kotlin.git"
         }
     }
+}
+
+signing {
+    setRequired { gradle.taskGraph.allTasks.any { it is PublishToMavenRepository } }
 }
 
 fun KotlinMultiplatformExtension.configureSourceSetsLayout() {
